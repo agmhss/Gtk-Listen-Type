@@ -48,7 +48,7 @@
 </style>
 </head>
 <body>
-<header>🎧 Listen & Type</header>
+<header>GTK 🎧 Listen & Type</header>
 <main>
 
   <!-- Controls / Setup -->
@@ -505,11 +505,17 @@ downloadCert.addEventListener('click', ()=>{
   doc.text(`This is to certify that ${nm} of Class ${cl}, Sec. ${se}, School ${sch},`, 40, 100);
   doc.text(`has scored ${percent}% in Listen & Type game in ${catText} category.`, 40, 118);
 
-  // Footer: date + issuer
+  // Footer: date (dd/mm/yyyy) + issuer
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  const formattedDate = `${dd}/${mm}/${yyyy}`;
+
   doc.setFontSize(12);
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, W-120, 170);
+  doc.text(`Date: ${formattedDate}`, W-120, 170);
   doc.setFont('helvetica','bold'); doc.setTextColor(0,128,255);
-  doc.text('Splendoe School of Mathematics', W-120, 186);
+  doc.text('English Department', W-120, 186);
 
   const safe = (nm || 'Student').replace(/[^a-z0-9]+/gi,'_');
   doc.save(`${safe}_ListenType_Certificate.pdf`);
