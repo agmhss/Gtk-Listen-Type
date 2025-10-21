@@ -1,1 +1,540 @@
-please wait 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Listen & Type</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f0f8ff; --text:#222; --card:#fff;
+    --primary1:#0078d7; --primary2:#00b4d8;
+    --good:#16a34a; --warn:#b91c1c; --muted:#64748b;
+    --chip:#eef7ff; --chip-border:#dbeafe;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Poppins',sans-serif;margin:0;background:var(--bg);color:var(--text)}
+  header{background:linear-gradient(to right,var(--primary1),var(--primary2));color:#fff;text-align:center;padding:18px 10px;font-size:1.6rem;font-weight:600}
+  main{padding:18px;max-width:960px;margin:auto}
+  .card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:20px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  h2{margin:.2em 0 .6em}
+  h3{margin:1em 0 .6em}
+  p{line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:12px}
+  .row > *{flex:1 1 240px}
+  .stack{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input[type="text"], textarea, select{
+    width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-family:inherit
+  }
+  textarea{min-height:110px;resize:vertical}
+  .btn{background:var(--primary1);color:#fff;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:1rem;transition:transform .04s ease, opacity .2s}
+  .btn:hover{opacity:.95}
+  .btn:active{transform:scale(.98)}
+  .btn-ghost{background:#fff;color:var(--primary1);border:1px solid var(--chip-border)}
+  .kpi{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{background:var(--chip);border:1px solid var(--chip-border);padding:8px 12px;border-radius:999px;font-weight:600}
+  .score{color:var(--good)}
+  .qprog{color:#0f172a}
+  .msg{min-height:22px;font-weight:600}
+  .msg.ok{color:var(--good)}
+  .msg.no{color:var(--warn)}
+  .muted{color:var(--muted)}
+  .hof-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #e2e8f0}
+  .cert-preview{border:1px dashed #e2e8f0;border-radius:10px;padding:10px;background:#fafcff}
+  @media (max-width:640px){
+    header{font-size:1.25rem}
+  }
+</style>
+</head>
+<body>
+<header>🎧 Listen & Type</header>
+<main>
+
+  <!-- Controls / Setup -->
+  <section class="card">
+    <h2>1) Title</h2>
+    <p class="muted">Practice listening and spelling. Punctuation is ignored; case-insensitive.</p>
+
+    <div class="kpi" aria-live="polite">
+      <span class="chip qprog">Question: <strong id="qProg">0/10</strong></span>
+      <span class="chip score">Score: <strong id="score">0</strong></span>
+      <span class="chip">Skips left: <strong id="skipsLeft">2</strong></span>
+      <span class="chip">Category: <strong id="activeCat">—</strong></span>
+    </div>
+
+    <h3>2) Choose a Category</h3>
+    <div class="row">
+      <div>
+        <label><strong>Category</strong></label>
+        <select id="category">
+          <option value="words">Words</option>
+          <option value="phrases">Phrases</option>
+          <option value="sentences">Sentences</option>
+        </select>
+      </div>
+      <div>
+        <label><strong>Voice</strong> <span class="muted">(optional)</span></label>
+        <select id="voiceSelect"></select>
+      </div>
+      <div>
+        <label><strong>Speech Rate</strong></label>
+        <select id="rate">
+          <option value="0.8">Slow</option>
+          <option value="1" selected>Normal</option>
+          <option value="1.2">Fast</option>
+        </select>
+      </div>
+    </div>
+
+    <h3>3) Start / Repeat</h3>
+    <div class="stack">
+      <button class="btn" id="startBtn">Start ▶</button>
+      <button class="btn-ghost" id="repeatBtn" disabled>Repeat ⟳</button>
+      <button class="btn-ghost" id="skipBtn" disabled>Skip (2 max)</button>
+    </div>
+    <p class="muted" id="hint">Press Start to hear Q1/10.</p>
+  </section>
+
+  <!-- Typing area -->
+  <section class="card">
+    <h2>4) Type What You Heard</h2>
+    <div class="row">
+      <div>
+        <textarea id="answer" placeholder="Type here..."></textarea>
+        <div class="stack" style="margin-top:8px">
+          <button class="btn" id="submitBtn" disabled>Submit</button>
+          <span class="msg" id="feedback"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Certificate -->
+  <section class="card">
+    <h2>7) Certificate</h2>
+    <div class="row">
+      <div><label><strong>Name</strong></label><input id="certName" type="text" placeholder="Your name"></div>
+      <div><label><strong>Class</strong></label><input id="certClass" type="text" placeholder="e.g., 6, 7A"></div>
+      <div><label><strong>Section</strong></label><input id="certSection" type="text" placeholder="A / B / ..."></div>
+      <div><label><strong>School</strong></label><input id="certSchool" type="text" placeholder="Your school"></div>
+    </div>
+    <div class="cert-preview" style="margin-top:10px">
+      <p><em>This is to certify that</em> <strong id="certPreviewName">—</strong>,
+      <em>of Class</em> <strong id="certPreviewClass">—</strong>,
+      <em>Sec.</em> <strong id="certPreviewSection">—</strong>,
+      <em>School</em> <strong id="certPreviewSchool">—</strong>,
+      <em>has scored</em> <strong id="certPreviewScore">0%</strong> <em>in Listen & Type game in</em> <strong id="certPreviewCat">—</strong> <em>category.</em></p>
+    </div>
+    <div class="stack" style="margin-top:8px">
+      <button class="btn" id="downloadCert" disabled>🎓 Download Certificate (PDF)</button>
+    </div>
+  </section>
+
+  <!-- Hall of Fame -->
+  <section class="card">
+    <h2>8) Hall of Fame (Top 10)</h2>
+    <p class="muted">Auto-saves locally after you finish 10 questions.</p>
+    <div id="hofList"></div>
+  </section>
+</main>
+
+<script>
+/* =========================
+   Data: 50 prompts per category (ages 10–15)
+   ========================= */
+const BANK = {
+  words: [
+    "accommodate","achieve","acquire","address","amateur","ancient","argument","athlete","average","brilliant",
+    "calendar","campaign","cemetery","committee","communicate","community","competition","complete","confident","curiosity",
+    "decision","defend","delicious","describe","determine","diamond","dictionary","different","difficult","embarrass",
+    "environment","equipment","especially","exercise","familiar","favourite","festival","foreign","government","grateful",
+    "guardian","hectic","honour","imagination","important","improvement","independent","language","library","necessary"
+  ],
+  phrases: [
+    "good morning","thank you very much","see you later","by the way","as soon as possible",
+    "out of the box","on the other hand","in my opinion","for example","step by step",
+    "a piece of cake","once in a while","sooner or later","keep in touch","take your time",
+    "pay attention","make a difference","do your best","in the meantime","after a while",
+    "for the first time","in the long run","to be honest","at the moment","as a result",
+    "in addition to","due to rain","from time to time","more or less","kind of tired",
+    "have a look","take a break","turn the page","practice makes perfect","better late than never",
+    "follow the rules","reach out to me","stay focused","keep it simple","just in case",
+    "last but not least","on the bright side","under the weather","according to plan","take responsibility",
+    "believe in yourself","enjoy the journey","set your goals","think it through","give it a try"
+  ],
+  sentences: [
+    "Please submit your homework before eight o'clock.",
+    "She bought a bouquet of flowers for her mother.",
+    "Reading every day will improve your vocabulary quickly.",
+    "Could you call me when you reach home safely?",
+    "The library closes at six in the evening.",
+    "Practice consistently and success will follow.",
+    "He couldn't attend because he was unwell.",
+    "They're planning a trip during the holidays.",
+    "We should focus on accuracy over speed.",
+    "This week has been extremely productive.",
+    "Remember to save your work frequently.",
+    "The science project is due next Monday.",
+    "Our coach encouraged us to work as a team.",
+    "Turn off the lights when you leave the room.",
+    "She solved the puzzle in a few minutes.",
+    "Please be quiet while the exam is going on.",
+    "The museum visit was both fun and educational.",
+    "Keep your phone on silent during the lesson.",
+    "I will meet you at the front gate after school.",
+    "Drinking water regularly keeps you healthy.",
+    "The teacher praised his thoughtful question.",
+    "Write neatly so others can read your notes.",
+    "We planted saplings along the playground fence.",
+    "Finish your meal before starting the game.",
+    "The drama rehearsal starts at four o'clock.",
+    "She revised the chapter before the test.",
+    "The bus arrived ten minutes early today.",
+    "Always be kind to your classmates and juniors.",
+    "He practiced the speech until it sounded natural.",
+    "A balanced diet helps you stay energetic.",
+    "Please return the book to the library shelf.",
+    "The results will be announced tomorrow morning.",
+    "We watched a documentary about space exploration.",
+    "Organise your desk to find things faster.",
+    "Her handwriting has improved a lot this term.",
+    "He waited patiently until his turn arrived.",
+    "Our team celebrated after winning the match.",
+    "The instructions were clear and easy to follow.",
+    "She adjusted the volume so everyone could hear.",
+    "We discussed the homework in small groups.",
+    "He wore a jacket because the evening was chilly.",
+    "Please wash your hands before lunch.",
+    "Their presentation impressed the audience.",
+    "I will practise the piano for thirty minutes.",
+    "The kitten hid under the sofa during the storm.",
+    "She set a reminder to water the plants.",
+    "They donated books to the community library.",
+    "Be careful while crossing the busy street.",
+    "He promised to keep the secret safe.",
+    "Working hard today builds confidence for tomorrow."
+  ]
+};
+
+/* =========================
+   State
+   ========================= */
+let selectedCat = 'words';
+let items = [];          // 10 items sampled for the round
+let index = 0;           // 0..9
+let score = 0;
+let skipsLeft = 2;
+let currentText = '';
+let voices = [];
+let chosenVoice = null;
+
+/* =========================
+   DOM
+   ========================= */
+const categorySel = document.getElementById('category');
+const voiceSelect = document.getElementById('voiceSelect');
+const rateSel = document.getElementById('rate');
+
+const startBtn = document.getElementById('startBtn');
+const repeatBtn = document.getElementById('repeatBtn');
+const skipBtn = document.getElementById('skipBtn');
+
+const qProgEl = document.getElementById('qProg');
+const scoreEl = document.getElementById('score');
+const skipsLeftEl = document.getElementById('skipsLeft');
+const activeCatEl = document.getElementById('activeCat');
+const hintEl = document.getElementById('hint');
+
+const answerEl = document.getElementById('answer');
+const submitBtn = document.getElementById('submitBtn');
+const feedbackEl = document.getElementById('feedback');
+
+const certName = document.getElementById('certName');
+const certClass = document.getElementById('certClass');
+const certSection = document.getElementById('certSection');
+const certSchool = document.getElementById('certSchool');
+
+const certPreviewName = document.getElementById('certPreviewName');
+const certPreviewClass = document.getElementById('certPreviewClass');
+const certPreviewSection = document.getElementById('certPreviewSection');
+const certPreviewSchool = document.getElementById('certPreviewSchool');
+const certPreviewScore = document.getElementById('certPreviewScore');
+const certPreviewCat = document.getElementById('certPreviewCat');
+const downloadCert = document.getElementById('downloadCert');
+
+const hofList = document.getElementById('hofList');
+const HOF_KEY = 'listen_type_hof_v1';
+
+/* =========================
+   Setup voices (Speech Synthesis)
+   ========================= */
+function populateVoices(){
+  voices = window.speechSynthesis.getVoices();
+  voiceSelect.innerHTML = '';
+  const def = document.createElement('option');
+  def.value = ''; def.textContent = 'Auto (browser default)';
+  voiceSelect.appendChild(def);
+  voices.forEach((v,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = `${v.name} (${v.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+}
+populateVoices();
+if (typeof speechSynthesis !== 'undefined'){
+  speechSynthesis.onvoiceschanged = populateVoices;
+}
+
+/* =========================
+   Helpers
+   ========================= */
+function sample10(arr){
+  const copy = arr.slice();
+  for(let i=copy.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [copy[i],copy[j]] = [copy[j],copy[i]];
+  }
+  return copy.slice(0,10);
+}
+function normalize(s){
+  // lower, remove punctuation, collapse whitespace
+  return String(s)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function speak(text){
+  if(!text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = parseFloat(rateSel.value || '1');
+  const selectedIndex = voiceSelect.value;
+  if(selectedIndex !== '' && voices[selectedIndex]) u.voice = voices[selectedIndex];
+  window.speechSynthesis.cancel(); // avoid overlap
+  window.speechSynthesis.speak(u);
+}
+function updateKPI(){
+  qProgEl.textContent = `${index+1}/10`;
+  scoreEl.textContent = `${score}`;
+  skipsLeftEl.textContent = `${skipsLeft}`;
+  activeCatEl.textContent = categorySel.options[categorySel.selectedIndex].textContent;
+}
+function setPlayState(running){
+  repeatBtn.disabled = !running;
+  submitBtn.disabled = !running;
+  skipBtn.disabled = !running || skipsLeft<=0;
+}
+function endRound(){
+  const percent = Math.round((score/10)*100);
+  feedbackEl.className = 'msg ok';
+  feedbackEl.textContent = `Round complete! You scored ${score}/10 (${percent}%).`;
+  hintEl.textContent = 'Great work! You can change category and press Start to play again.';
+  setPlayState(false);
+  downloadCert.disabled = false;
+  // Update certificate preview fields
+  certPreviewName.textContent = certName.value || '—';
+  certPreviewClass.textContent = certClass.value || '—';
+  certPreviewSection.textContent = certSection.value || '—';
+  certPreviewSchool.textContent = certSchool.value || '—';
+  certPreviewScore.textContent = `${percent}%`;
+  certPreviewCat.textContent = categorySel.options[categorySel.selectedIndex].textContent;
+
+  // Save to Hall of Fame
+  saveHOF({
+    name: certName.value || 'Anonymous',
+    cls: certClass.value || '',
+    sec: certSection.value || '',
+    school: certSchool.value || '',
+    category: categorySel.value,
+    percent,
+    date: Date.now()
+  });
+  renderHOF();
+}
+function saveHOF(entry){
+  const list = loadHOF();
+  list.push(entry);
+  localStorage.setItem(HOF_KEY, JSON.stringify(list));
+}
+function loadHOF(){
+  try{ return JSON.parse(localStorage.getItem(HOF_KEY) || '[]'); }catch(_){ return []; }
+}
+function renderHOF(){
+  const cat = categorySel.value;
+  const list = loadHOF()
+    .filter(x=>x.category===cat)
+    .sort((a,b)=> b.percent - a.percent || a.date - b.date)
+    .slice(0,10);
+
+  if(list.length===0){
+    hofList.innerHTML = '<p class="muted">No entries yet. Finish a round to appear here.</p>';
+    return;
+  }
+  hofList.innerHTML = '';
+  list.forEach((it,idx)=>{
+    const row = document.createElement('div');
+    row.className = 'hof-item';
+    const left = document.createElement('div');
+    left.innerHTML = `<strong>${idx+1}.</strong> ${it.name} — ${it.school} (Class ${it.cls}, Sec ${it.sec})`;
+    const right = document.createElement('div');
+    right.textContent = `${it.percent}%`;
+    row.appendChild(left); row.appendChild(right);
+    hofList.appendChild(row);
+  });
+}
+
+/* =========================
+   Flow
+   ========================= */
+categorySel.addEventListener('change', ()=>{
+  selectedCat = categorySel.value;
+  renderHOF();
+});
+
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  // initialize round
+  selectedCat = categorySel.value;
+  items = sample10(BANK[selectedCat]);
+  index = 0; score = 0; skipsLeft = 2;
+  activeCatEl.textContent = categorySel.options[categorySel.selectedIndex].textContent;
+  qProgEl.textContent = `1/10`;
+  scoreEl.textContent = `0`;
+  skipsLeftEl.textContent = `2`;
+  feedbackEl.textContent = '';
+  answerEl.value = '';
+  downloadCert.disabled = true;
+  setPlayState(true);
+  currentText = items[index];
+  hintEl.textContent = 'Playing Q1/10...';
+  speak(currentText);
+});
+
+document.getElementById('repeatBtn').addEventListener('click', ()=>{
+  if(currentText) speak(currentText);
+});
+
+document.getElementById('skipBtn').addEventListener('click', ()=>{
+  if(skipsLeft<=0) return;
+  skipsLeft--;
+  if(index < 9){
+    index++;
+    currentText = items[index];
+    answerEl.value = '';
+    feedbackEl.textContent = '';
+    updateKPI();
+    speak(currentText);
+  } else {
+    // last question skipped ends round
+    updateKPI();
+    endRound();
+  }
+  setPlayState(true);
+});
+
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  const typed = answerEl.value;
+  if(!typed.trim()){
+    feedbackEl.className = 'msg no';
+    feedbackEl.textContent = 'Please type what you heard.';
+    return;
+  }
+  const correct = normalize(currentText);
+  const given = normalize(typed);
+  if(given === correct){
+    score++;
+    feedbackEl.className = 'msg ok';
+    feedbackEl.textContent = '🎉 Correct! Well done.';
+  } else {
+    feedbackEl.className = 'msg no';
+    feedbackEl.textContent = `❌ Not quite. Correct was: "${currentText}"`;
+  }
+
+  if(index < 9){
+    index++;
+    currentText = items[index];
+    answerEl.value = '';
+    updateKPI();
+    // play next automatically
+    setTimeout(()=> speak(currentText), 400);
+  } else {
+    updateKPI();
+    endRound();
+  }
+});
+
+/* =========================
+   Certificate
+   ========================= */
+[certName, certClass, certSection, certSchool].forEach(inp=>{
+  inp.addEventListener('input', ()=>{
+    certPreviewName.textContent = certName.value || '—';
+    certPreviewClass.textContent = certClass.value || '—';
+    certPreviewSection.textContent = certSection.value || '—';
+    certPreviewSchool.textContent = certSchool.value || '—';
+  });
+});
+
+downloadCert.addEventListener('click', ()=>{
+  const percent = Math.round((score/10)*100);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'landscape' });
+  const W = doc.internal.pageSize.getWidth();
+
+  // Border panel
+  doc.setDrawColor(0,128,255); doc.setLineWidth(8);
+  doc.rect(10,10,W-20,190);
+  doc.setFillColor(240,248,255); doc.rect(16,16,W-32,178,'F');
+
+  // Title centered
+  doc.setFont('helvetica','bold'); doc.setFontSize(30); doc.setTextColor(20,60,120);
+  doc.text('Certificate of Achievement', W/2, 48, {align:'center'});
+
+  // School centered (from input)
+  const sch = certSchool.value || 'Your School';
+  doc.setFontSize(18); doc.setTextColor(0,0,0);
+  doc.text(sch, W/2, 66, {align:'center'});
+
+  // Body
+  const nm = certName.value || '—';
+  const cl = certClass.value || '—';
+  const se = certSection.value || '—';
+  const catText = categorySel.options[categorySel.selectedIndex].textContent;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(16);
+  doc.text(`This is to certify that ${nm} of Class ${cl}, Sec. ${se}, School ${sch},`, 40, 100);
+  doc.text(`has scored ${percent}% in Listen & Type game in ${catText} category.`, 40, 118);
+
+  // Footer: date + issuer
+  doc.setFontSize(12);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, W-120, 170);
+  doc.setFont('helvetica','bold'); doc.setTextColor(0,128,255);
+  doc.text('Splendoe School of Mathematics', W-120, 186);
+
+  const safe = (nm || 'Student').replace(/[^a-z0-9]+/gi,'_');
+  doc.save(`${safe}_ListenType_Certificate.pdf`);
+});
+
+/* =========================
+   Init
+   ========================= */
+(function init(){
+  renderHOF();
+  certPreviewCat.textContent = categorySel.options[categorySel.selectedIndex].textContent;
+  categorySel.addEventListener('change', ()=>{
+    certPreviewCat.textContent = categorySel.options[categorySel.selectedIndex].textContent;
+  });
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('repeatBtn').disabled = true;
+  document.getElementById('skipBtn').disabled = true;
+
+  // Enable submit typing by default (when game starts, it's enabled)
+  answerEl.addEventListener('input', ()=>{
+    // optional: live checks, but not needed now
+  });
+})();
+</script>
+</body>
+</html>
+
+
